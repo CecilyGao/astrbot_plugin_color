@@ -82,6 +82,8 @@ class ColorConverterPlugin(Star):
                     return str(event.data.get('user_id', ''))
                 elif hasattr(event, 'raw_event') and isinstance(event.raw_event, dict):
                     return str(event.raw_event.get('user_id', ''))
+                elif hasattr(event, 'sender') and hasattr(event.sender, 'user_id'):
+                    return str(event.sender.user_id)
             except Exception:
                 pass
             
@@ -101,6 +103,8 @@ class ColorConverterPlugin(Star):
                 return str(event.data.get('group_id', ''))
             elif hasattr(event, 'raw_event') and isinstance(event.raw_event, dict):
                 return str(event.raw_event.get('group_id', ''))
+            elif hasattr(event, 'group') and hasattr(event.group, 'group_id'):
+                return str(event.group.group_id)
         except Exception:
             pass
         
@@ -467,8 +471,6 @@ class ColorConverterPlugin(Star):
     async def color_converter(
         self,
         event: AstrMessageEvent,
-        target_format: str = None,
-        color_str: str = None,
         *args
     ):
         """
@@ -484,26 +486,59 @@ class ColorConverterPlugin(Star):
             yield event.plain_result(f"权限不足: {error_msg}")
             return
         
+        # 获取原始消息文本
+        raw_message = ""
+        try:
+            # 尝试从事件中获取原始消息
+            if hasattr(event, 'raw_message'):
+                raw_message = event.raw_message
+            elif hasattr(event, 'message') and hasattr(event.message, 'extract_plain_text'):
+                raw_message = event.message.extract_plain_text()
+            elif hasattr(event, 'plain_text'):
+                raw_message = event.plain_text
+            else:
+                # 尝试从消息组件中提取
+                if hasattr(event, 'message_obj') and hasattr(event.message_obj, 'extract_plain_text'):
+                    raw_message = event.message_obj.extract_plain_text()
+        except Exception as e:
+            logger.warning(f"获取原始消息时出错: {e}")
+        
+        # 如果没有原始消息，使用参数
+        if not raw_message:
+            raw_message = ' '.join(args) if args else ''
+        
+        # 去除命令前缀
+        command_prefix = "color"
+        if raw_message.startswith(command_prefix):
+            raw_message = raw_message[len(command_prefix):].strip()
+        
         # 如果没有提供参数，显示简单帮助
-        if not target_format:
+        if not raw_message:
             yield event.plain_result("颜色转换插件\n使用方式: color <目标格式> <现有格式>\n示例: color rgb 72C0FF\n输入 colorhelp 查看详细帮助")
             return
         
+        # 解析参数
+        parts = raw_message.strip().split(maxsplit=1)
+        
+        if len(parts) < 2:
+            # 只有一个参数，可能是格式错误
+            if parts:
+                target_format = parts[0].lower()
+                if target_format in ['rgb', 'hex', 'cmyk']:
+                    yield event.plain_result(f"错误：请提供颜色值\n\n示例: color {target_format} 72C0FF")
+                else:
+                    yield event.plain_result(f"错误：未知的目标格式 '{target_format}'，必须是 rgb, hex 或 cmyk\n\n输入 colorhelp 查看帮助")
+            else:
+                yield event.plain_result("颜色转换插件\n使用方式: color <目标格式> <现有格式>\n示例: color rgb 72C0FF\n输入 colorhelp 查看详细帮助")
+            return
+        
+        target_format, color_str = parts
         target_format = target_format.lower()
         
         # 验证目标格式
         if target_format not in ['rgb', 'hex', 'cmyk']:
             yield event.plain_result(f"错误：未知的目标格式 '{target_format}'，必须是 rgb, hex 或 cmyk\n\n输入 colorhelp 查看帮助")
             return
-        
-        # 检查是否有颜色字符串
-        if not color_str:
-            yield event.plain_result(f"错误：请提供颜色值\n\n示例: color {target_format} 72C0FF")
-            return
-        
-        # 如果有额外参数，合并到颜色字符串中
-        if args:
-            color_str = f"{color_str} {' '.join(args)}"
         
         # 转换颜色
         color_info, error_msg = self._convert_color(target_format, color_str)
@@ -517,12 +552,9 @@ class ColorConverterPlugin(Star):
         yield event.plain_result(output)
     
     @filter.command("colorhelp")
-    async def color_help(self, event: AstrMessageEvent):
+    async def color_help(self, event: AstrMessageEvent, *args):
         """显示颜色转换帮助信息"""
-        # 注意：这里不需要传递target_format参数，AstrBot会自动处理
-        # 直接返回帮助信息，不进行权限检查（或简化权限检查）
-        
-        # 简化的权限检查，只检查基本权限
+        # 简化权限检查
         try:
             # 尝试获取用户ID，但不强制要求
             user_id = self._get_user_id(event)
