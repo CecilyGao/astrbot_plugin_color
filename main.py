@@ -13,9 +13,8 @@ from collections import defaultdict
 @register(
     "ColorConverter",
     "CecilyGao",
-    "颜色值转换插件",
     "实现RGB、CMYK、16进制颜色值的相互转换",
-    "1.4.0",
+    "1.0.0",
     "https://github.com/CecilyGao/astrbot_plugin_color_converter"
 )
 class ColorConverterPlugin(Star):
