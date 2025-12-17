@@ -69,12 +69,54 @@ class ColorConverterPlugin(Star):
         except Exception as e:
             logger.error(f"加载配置时发生错误: {e}")
     
+    def _get_user_id(self, event: AstrMessageEvent) -> str:
+        """从事件中获取用户ID"""
+        try:
+            # 尝试从事件对象直接获取
+            return str(event.user_id)
+        except AttributeError:
+            # 如果事件对象没有user_id属性，尝试从原始数据中获取
+            try:
+                # 检查是否有原始事件数据
+                if hasattr(event, 'data') and isinstance(event.data, dict):
+                    return str(event.data.get('user_id', ''))
+                elif hasattr(event, 'raw_event') and isinstance(event.raw_event, dict):
+                    return str(event.raw_event.get('user_id', ''))
+            except Exception:
+                pass
+            
+            # 如果无法获取，返回空字符串
+            logger.warning(f"无法从事件中获取用户ID: {event}")
+            return ""
+    
+    def _get_group_id(self, event: AstrMessageEvent) -> str:
+        """从事件中获取群组ID"""
+        try:
+            # 尝试从事件对象直接获取
+            if hasattr(event, 'group_id'):
+                return str(event.group_id)
+            
+            # 如果事件对象没有group_id属性，尝试从原始数据中获取
+            if hasattr(event, 'data') and isinstance(event.data, dict):
+                return str(event.data.get('group_id', ''))
+            elif hasattr(event, 'raw_event') and isinstance(event.raw_event, dict):
+                return str(event.raw_event.get('group_id', ''))
+        except Exception:
+            pass
+        
+        # 如果无法获取，返回空字符串
+        return ""
+    
     def _check_permission(self, event: AstrMessageEvent) -> tuple[bool, str]:
         """
         检查用户是否有权限使用插件
         返回: (是否允许, 错误信息)
         """
-        user_id = str(event.user_id)
+        user_id = self._get_user_id(event)
+        
+        if not user_id:
+            # 如果无法获取用户ID，默认为没有权限
+            return False, "无法验证用户身份"
         
         # 检查是否在私聊中
         if event.message_type == "private":
@@ -84,7 +126,11 @@ class ColorConverterPlugin(Star):
         
         # 检查是否在群聊中
         elif event.message_type == "group":
-            group_id = str(event.group_id)
+            group_id = self._get_group_id(event)
+            
+            if not group_id:
+                return False, "无法获取群组信息"
+            
             # 检查群聊白名单
             if self.group_whitelist and group_id not in self.group_whitelist:
                 return False, "本群不在白名单中，无法使用此功能"
@@ -473,10 +519,29 @@ class ColorConverterPlugin(Star):
     @filter.command("colorhelp")
     async def color_help(self, event: AstrMessageEvent):
         """显示颜色转换帮助信息"""
-        allowed, error_msg = self._check_permission(event)
-        if not allowed:
-            yield event.plain_result(f"权限不足: {error_msg}")
-            return
+        # 注意：这里不需要传递target_format参数，AstrBot会自动处理
+        # 直接返回帮助信息，不进行权限检查（或简化权限检查）
+        
+        # 简化的权限检查，只检查基本权限
+        try:
+            # 尝试获取用户ID，但不强制要求
+            user_id = self._get_user_id(event)
+            
+            # 如果是私聊且设置了白名单，检查权限
+            if event.message_type == "private" and self.private_whitelist:
+                if not user_id or user_id not in self.private_whitelist:
+                    yield event.plain_result("您不在私聊白名单中，无法使用此功能")
+                    return
+            
+            # 如果是群聊且设置了白名单，检查权限
+            elif event.message_type == "group" and self.group_whitelist:
+                group_id = self._get_group_id(event)
+                if not group_id or group_id not in self.group_whitelist:
+                    yield event.plain_result("本群不在白名单中，无法使用此功能")
+                    return
+        except Exception as e:
+            # 如果权限检查出错，仍然显示帮助信息
+            logger.warning(f"权限检查出错: {e}")
         
         yield event.plain_result(self.help_text)
     
