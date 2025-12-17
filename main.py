@@ -32,19 +32,19 @@ class ColorConverterPlugin(Star):
         # 帮助信息
         self.help_text = (
             "=== 颜色值转换插件帮助 ===\n"
-            "【命令格式】color <目标格式> <现有格式>\n"
+            "【命令格式】color <目标格式> <颜色值>\n"
             "  » 示例: color rgb 72C0FF\n"
             "  » 示例: color cmyk 114,166,255\n"
             "  » 示例: color hex 55,35,0,0\n\n"
             
             "【参数说明】\n"
             " <目标格式>: 想要转换成的格式，可选值: rgb, hex, cmyk\n"
-            " <现有格式>: 现有的颜色值，支持以下格式:\n"
+            " <颜色值>: 现有的颜色值，支持以下格式:\n"
             "   - 16进制: 3位或6位16进制数，不需要#\n"
             "      示例: F00 (红色) 或 FF0000 (红色)\n"
-            "   - RGB: 3个0-255的数字，用逗号或空格分隔\n"
-            "      示例: 255,0,0 或 255 0 0\n"
-            "   - CMYK: 4个0-100的数字，用逗号或空格分隔\n"
+            "   - RGB: 3个0-255的数字，用逗号分隔\n"
+            "      示例: 255,0,0 (红色)\n"
+            "   - CMYK: 4个0-100的数字，用逗号分隔\n"
             "      示例: 0,100,100,0 (红色)\n\n"
             
             "【帮助命令】colorhelp：显示此帮助信息"
@@ -289,10 +289,8 @@ class ColorConverterPlugin(Star):
         if re.match(r'^[0-9A-Fa-f]{3}$', hex_str) or re.match(r'^[0-9A-Fa-f]{6}$', hex_str):
             return 'hex', [hex_str]
         
-        # 2. 检测逗号分隔或空格分隔的数字格式
-        # 替换连续空格为单个逗号，然后分割
-        normalized_str = re.sub(r'\s+', ',', color_str)
-        parts = [p.strip() for p in normalized_str.split(',') if p.strip()]
+        # 2. 检测逗号分隔的数字格式
+        parts = [p.strip() for p in color_str.split(',') if p.strip()]
         
         if not parts:
             return 'unknown', []
@@ -311,26 +309,13 @@ class ColorConverterPlugin(Star):
         
         # 3. 根据数字数量判断格式
         if len(nums) == 3:
-            # 检查是否为RGB (0-255) 或 CMYK (0-100)
+            # RGB格式：3个值，范围0-255
             if all(0 <= n <= 255 for n in nums):
-                # 如果有值大于100，很可能是RGB
-                if any(n > 100 for n in nums):
-                    return 'rgb', nums
-                else:
-                    # 值都在0-100之间，可能是RGB也可能是CMYK
-                    # 检查是否为整数，RGB通常是整数
-                    if all(isinstance(n, int) for n in nums):
-                        return 'rgb', nums  # 优先返回rgb
-                    else:
-                        return 'cmyk', nums  # 有小数，更可能是cmyk
+                return 'rgb', nums
             else:
-                # 有值不在0-255范围内
-                if all(0 <= n <= 100 for n in nums):
-                    return 'cmyk', nums
-                else:
-                    return 'unknown', nums
+                return 'unknown', nums
         elif len(nums) == 4:
-            # 检查是否为CMYK (0-100)
+            # CMYK格式：4个值，范围0-100
             if all(0 <= n <= 100 for n in nums):
                 return 'cmyk', nums
             else:
@@ -391,13 +376,11 @@ class ColorConverterPlugin(Star):
                 }
                 
             elif src_format == 'cmyk':
-                if len(nums) == 3:
-                    # 如果是3个值，假设K=0
-                    c, m, y = nums
-                    k = 0
-                else:
-                    c, m, y, k = nums
+                # CMYK必须是4个值
+                if len(nums) != 4:
+                    return {}, "CMYK格式需要4个值，用逗号分隔 (如: 0,100,100,0)"
                 
+                c, m, y, k = nums
                 rgb, error = self.cmyk_to_rgb(c, m, y, k)
                 if error:
                     return {}, error
@@ -409,7 +392,7 @@ class ColorConverterPlugin(Star):
                 color_info = {
                     'hex': hex_color,
                     'rgb': rgb,
-                    'cmyk': (c, m, y, k) if len(nums) == 4 else (c, m, y, 0)
+                    'cmyk': (c, m, y, k)
                 }
         
         except Exception as e:
@@ -468,14 +451,10 @@ class ColorConverterPlugin(Star):
         return "\n".join(output)
     
     @filter.command("color")
-    async def color_converter(
-        self,
-        event: AstrMessageEvent,
-        *args
-    ):
+    async def color_converter(self, event: AstrMessageEvent):
         """
         颜色值转换命令
-        用法: color <目标格式> <现有格式>
+        用法: color <目标格式> <颜色值>
         示例: color rgb 72C0FF
         示例: color hex 114,166,255
         示例: color cmyk 55,35,0,0
@@ -486,50 +465,54 @@ class ColorConverterPlugin(Star):
             yield event.plain_result(f"权限不足: {error_msg}")
             return
         
-        # 获取原始消息文本
+        # 获取原始消息
         raw_message = ""
         try:
-            # 尝试从事件中获取原始消息
+            # 尝试从不同属性中获取原始消息
             if hasattr(event, 'raw_message'):
                 raw_message = event.raw_message
             elif hasattr(event, 'message') and hasattr(event.message, 'extract_plain_text'):
                 raw_message = event.message.extract_plain_text()
             elif hasattr(event, 'plain_text'):
                 raw_message = event.plain_text
-            else:
-                # 尝试从消息组件中提取
-                if hasattr(event, 'message_obj') and hasattr(event.message_obj, 'extract_plain_text'):
-                    raw_message = event.message_obj.extract_plain_text()
+            elif hasattr(event, 'message_obj') and hasattr(event.message_obj, 'extract_plain_text'):
+                raw_message = event.message_obj.extract_plain_text()
         except Exception as e:
             logger.warning(f"获取原始消息时出错: {e}")
+            yield event.plain_result("获取消息时出错，请重试")
+            return
         
-        # 如果没有原始消息，使用参数
+        # 如果没有原始消息，返回帮助
         if not raw_message:
-            raw_message = ' '.join(args) if args else ''
+            yield event.plain_result("颜色转换插件\n使用方式: color <目标格式> <颜色值>\n示例: color rgb 72C0FF\n输入 colorhelp 查看详细帮助")
+            return
         
         # 去除命令前缀
         command_prefix = "color"
         if raw_message.startswith(command_prefix):
-            raw_message = raw_message[len(command_prefix):].strip()
+            content = raw_message[len(command_prefix):].strip()
+        else:
+            # 如果不是以color开头，可能是其他方式触发，使用整个消息
+            content = raw_message
         
-        # 如果没有提供参数，显示简单帮助
-        if not raw_message:
-            yield event.plain_result("颜色转换插件\n使用方式: color <目标格式> <现有格式>\n示例: color rgb 72C0FF\n输入 colorhelp 查看详细帮助")
+        # 如果没有内容，显示帮助
+        if not content:
+            yield event.plain_result("颜色转换插件\n使用方式: color <目标格式> <颜色值>\n示例: color rgb 72C0FF\n输入 colorhelp 查看详细帮助")
             return
         
-        # 解析参数
-        parts = raw_message.strip().split(maxsplit=1)
+        # 解析内容
+        parts = content.strip().split(maxsplit=1)
         
         if len(parts) < 2:
-            # 只有一个参数，可能是格式错误
+            # 只有一个参数或没有参数
             if parts:
-                target_format = parts[0].lower()
-                if target_format in ['rgb', 'hex', 'cmyk']:
-                    yield event.plain_result(f"错误：请提供颜色值\n\n示例: color {target_format} 72C0FF")
+                # 只有一个参数，可能是格式错误
+                if parts[0].lower() in ['rgb', 'hex', 'cmyk']:
+                    yield event.plain_result(f"错误：请提供颜色值\n\n示例: color {parts[0]} 72C0FF")
                 else:
-                    yield event.plain_result(f"错误：未知的目标格式 '{target_format}'，必须是 rgb, hex 或 cmyk\n\n输入 colorhelp 查看帮助")
+                    yield event.plain_result(f"错误：命令格式不正确\n\n正确格式: color <目标格式> <颜色值>\n示例: color rgb 72C0FF")
             else:
-                yield event.plain_result("颜色转换插件\n使用方式: color <目标格式> <现有格式>\n示例: color rgb 72C0FF\n输入 colorhelp 查看详细帮助")
+                yield event.plain_result("颜色转换插件\n使用方式: color <目标格式> <颜色值>\n示例: color rgb 72C0FF\n输入 colorhelp 查看详细帮助")
             return
         
         target_format, color_str = parts
@@ -552,7 +535,7 @@ class ColorConverterPlugin(Star):
         yield event.plain_result(output)
     
     @filter.command("colorhelp")
-    async def color_help(self, event: AstrMessageEvent, *args):
+    async def color_help(self, event: AstrMessageEvent):
         """显示颜色转换帮助信息"""
         # 简化权限检查
         try:
