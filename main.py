@@ -725,7 +725,7 @@ class ColorConverterPlugin(Star):
             # 使用消息链发送文本和图片
             chain = [
                 Comp.Plain(text_output),
-                Comp.Plain(" \n")，
+                Comp.Plain(" \n"),
                 Comp.Plain("颜色预览:\n"),
                 Comp.Image.fromBytes(preview_image.getvalue())
             ]
