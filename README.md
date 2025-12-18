@@ -4,25 +4,26 @@
 # 🔧 安装
 方法一：使用插件市场 (推荐)
 
-搜索 MC文创渲染插件 并安装
+搜索 color_converter 并安装
 
 方法二：Git Clone
 
 进入 AstrBot 的 data/plugins/ 目录，然后执行：
 
 ```bash
-git clone https://github.com/CecilyGao/astrbot_plugin_minecraft_product_render
+git clone https://github.com/CecilyGao/astrbot_plugin_color_converter
 ```
 
-安装依赖
+##安装依赖
 
 本插件需要：
 - aiohttp
 - pillow
 
+手动安装依赖：pip install aiohttp; pip install pillow
 requirements.txt还没弄，等我有时间搞一下
 
-无论使用哪种方法，插件的依赖都会在机器人下次重启时自动安装。
+~~无论使用哪种方法，插件的依赖都会在机器人下次重启时自动安装。~~
 
 # 🚀 使用说明
 ## 指令1：颜色格式转换
@@ -35,7 +36,6 @@ requirements.txt还没弄，等我有时间搞一下
 -- RGB: 3个0-255的数字，用逗号分隔。示例: 255,0,0
 -- CMYK: 4个0-100的数字，用逗号分隔。示例: 0,100,100,0
             
-
 ### 示例
 - `/color rgb 72C0FF` - 将16进制的#72C0FF转换为RGB格式
 - `/color cmyk 114,166,255` - 将RGB的(114,166,255)转换为CMYK格式
