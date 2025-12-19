@@ -61,6 +61,15 @@ pip install -r requirements.txt
 
 
 ---
+## 指令3：图片色板分析器
+`/color analyze '颜色数量' （需要引用一张图片）`
+
+### 参数
+- `颜色数量`：1-10，不填默认为5 例如：3
+
+### 示例
+- `/color analyze 7（引用一张图片）`
+
 ## 帮助命令
 `/colorhelp` - 显示此帮助信息
 
@@ -68,6 +77,7 @@ pip install -r requirements.txt
 理论支持aiocqhttp，目前仅测试了napcat，因为我只有这一个平台的实例。我事插件小白不要欺负我😭
 
 # 💡 更新情况
+- v1.0.3 新增功能：color analyze色板分析
 - v1.0.2 修复了bug：未能正确判断颜色值
 - v1.0.1 新增功能：color pick取色器
 - v1.0.0 实现颜色格式转换功能
