@@ -14,7 +14,7 @@
 git clone https://github.com/CecilyGao/astrbot_plugin_color_converter
 ```
 
-##安装依赖
+## 安装依赖
 
 本插件需要：
 - aiohttp>=3.8.0
