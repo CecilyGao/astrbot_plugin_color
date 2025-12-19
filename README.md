@@ -44,7 +44,7 @@ pip install -r requirements.txt
 - `/color cmyk 114,166,255` - 将RGB的(114,166,255)转换为CMYK格式
 - `/color hex 55,35,0,0` - 将CMYK的（55%,35%,0%,0%）转换成16进制格式
 
-<img width="740" height="609" alt="IMG_579" src="https://github.com/user-attachments/assets/979cec23-7aeb-4928-9be0-ccf567e892b1" />
+<img width="738" height="658" alt="IMG_586" src="https://github.com/user-attachments/assets/830dc235-9215-4af5-91b8-3b42715eac83" />
 
 
 ---
@@ -57,7 +57,7 @@ pip install -r requirements.txt
 ### 示例
 - `/color pick 1490,532（引用一张图片）` 
 
-<img width="760" height="1632" alt="IMG_582" src="https://github.com/user-attachments/assets/f886f0b6-b09c-4622-8049-37142b92de49" />
+<img width="746" height="1220" alt="IMG_584" src="https://github.com/user-attachments/assets/0cf0fb93-b2be-4057-b9a7-e4e7e922b6c3" />
 
 
 ---
@@ -69,6 +69,9 @@ pip install -r requirements.txt
 
 ### 示例
 - `/color analyze 7（引用一张图片）`
+
+<img width="748" height="2182" alt="IMG_585" src="https://github.com/user-attachments/assets/e3071ec0-988a-47a6-80ab-419a3a639026" />
+
 
 ## 帮助命令
 `/colorhelp` - 显示此帮助信息
