@@ -1,17 +1,17 @@
-# astrbot_plugin_color_converter
-颜色转换器，支持RGB/CMYK/16进制颜色互转、图片按坐标取色等功能
+# astrbot_plugin_color
+颜色插件，支持RGB/CMYK/16进制颜色互转、图片按坐标取色等功能
 
 # 🔧 安装
 方法一：使用插件市场 (推荐)
 
-搜索 color_converter 并安装
+搜索 color 并安装
 
 方法二：Git Clone
 
 进入 AstrBot 的 data/plugins/ 目录，然后执行：
 
 ```bash
-git clone https://github.com/CecilyGao/astrbot_plugin_color_converter
+git clone https://github.com/CecilyGao/astrbot_plugin_color
 ```
 
 ## 安装依赖
@@ -44,6 +44,9 @@ pip install -r requirements.txt
 - `/color cmyk 114,166,255` - 将RGB的(114,166,255)转换为CMYK格式
 - `/color hex 55,35,0,0` - 将CMYK的（55%,35%,0%,0%）转换成16进制格式
 
+<img width="740" height="609" alt="IMG_579" src="https://github.com/user-attachments/assets/979cec23-7aeb-4928-9be0-ccf567e892b1" />
+
+
 ---
 ## 指令2：图片坐标取色器
 `/color pick '坐标' （需要引用一张图片）`
@@ -53,6 +56,9 @@ pip install -r requirements.txt
 
 ### 示例
 - `/color pick 1490,532（引用一张图片）` 
+
+<img width="760" height="1632" alt="IMG_582" src="https://github.com/user-attachments/assets/f886f0b6-b09c-4622-8049-37142b92de49" />
+
 
 ---
 ## 帮助命令
