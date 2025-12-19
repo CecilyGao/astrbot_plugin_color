@@ -17,13 +17,14 @@ git clone https://github.com/CecilyGao/astrbot_plugin_color_converter
 ##安装依赖
 
 本插件需要：
-- aiohttp
-- pillow
+- aiohttp>=3.8.0
+- pillow>=12.0.0
 
 手动安装依赖：pip install aiohttp; pip install pillow
-requirements.txt还没弄，等我有时间搞一下
 
-~~无论使用哪种方法，插件的依赖都会在机器人下次重启时自动安装。~~
+可见requirements.txt
+
+无论使用哪种方法，插件的依赖都会在机器人下次重启时自动安装。
 
 # 🚀 使用说明
 ## 指令1：颜色格式转换
@@ -55,5 +56,5 @@ requirements.txt还没弄，等我有时间搞一下
 ## 帮助命令
 `/colorhelp` - 显示此帮助信息
 
-# :speech_balloon: 支持平台
-理论支持QQ平台，目前仅测试了napcat，因为我只有这一个平台的实例。
+# 🖥 支持平台
+理论支持aiocqhttp，目前仅测试了napcat，因为我只有这一个平台的实例。我事插件小白不要欺负我😭
