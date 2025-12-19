@@ -1,4 +1,4 @@
-# main.py - 颜色转换插件完整修复版本（添加色板分析功能）
+# main.py - 颜色转换插件完整修复版本（添加色板分析功能）- 修复版
 import re
 import aiohttp
 from PIL import Image, ImageDraw
@@ -106,7 +106,7 @@ class ColorConverterPlugin(Star):
                         img_bytes_list.append(img_bytes)
                 elif seg.file:
                     try:
-                        with open(seg.file, 'rb') as f:
+                        with open(s_chain.file, 'rb') as f:
                             img_bytes_list.append(f.read())
                     except Exception as e:
                         logger.error(f"读取图片文件失败: {e}")
@@ -871,13 +871,8 @@ class ColorConverterPlugin(Star):
             yield event.plain_result("颜色转换插件\n使用方式: color <目标格式> <颜色值>\n示例: color rgb 72C0FF\n输入 colorhelp 查看详细帮助")
             return
         
-        # 检查是否为pick或analyze命令
-        if 'pick' in content.lower() or 'analyze' in content.lower():
-            # 这些命令需要特殊处理：color pick x,y 或 color analyze [数量]
-            parts = content.strip().split(maxsplit=2)
-        else:
-            # 普通颜色转换命令：只需要分割成2部分
-            parts = content.strip().split(maxsplit=1)
+        # 分割命令参数 - 统一处理方式
+        parts = content.strip().split(maxsplit=2)
         
         if len(parts) < 1:
             yield event.plain_result("颜色转换插件\n使用方式: color <目标格式> <颜色值>\n示例: color rgb 72C0FF\n输入 colorhelp 查看详细帮助")
@@ -911,8 +906,7 @@ class ColorConverterPlugin(Star):
             # 使用消息链发送文本和图片
             chain = [
                 Comp.Plain(text_output),
-                Comp.Plain(" \n"),
-                Comp.Plain("颜色预览:\n"),
+                Comp.Plain("\n颜色预览:\n"),
                 Comp.Image.fromBytes(preview_image.getvalue())
             ]
             
@@ -938,9 +932,7 @@ class ColorConverterPlugin(Star):
                 yield event.plain_result("错误：请引用一张图片进行色板分析\n\n用法: 引用一张图片并发送 color analyze [数量]\n示例: 引用图片后发送 color analyze 8")
                 return
             
-            # 分析色板
-            yield event.plain_result(f"正在分析图片色板，提取前 {num_colors} 种主要颜色...")
-            
+            # 分析色板 - 不发送中间提示消息
             colors, percentages, image_size, error_msg = await self._analyze_image_palette(image_bytes, num_colors)
             if error_msg:
                 yield event.plain_result(error_msg)
@@ -959,31 +951,37 @@ class ColorConverterPlugin(Star):
             return
         
         # 处理传统的颜色转换命令
-        if len(parts) < 2:
-            if command_type in ['rgb', 'hex', 'cmyk']:
-                yield event.plain_result(f"错误：请提供颜色值\n\n示例: color {command_type} 72C0FF")
-            else:
-                yield event.plain_result(f"错误：命令格式不正确\n\n正确格式: color <目标格式> <颜色值>\n示例: color rgb 72C0FF")
+        else:
+            # 这里需要重新解析，因为传统命令是 color <目标格式> <颜色值>
+            # 前面已经分割过一次，但传统命令只需要分割成两部分
+            parts = content.strip().split(maxsplit=1)
+            
+            if len(parts) < 2:
+                if command_type in ['rgb', 'hex', 'cmyk']:
+                    yield event.plain_result(f"错误：请提供颜色值\n\n示例: color {command_type} 72C0FF")
+                else:
+                    yield event.plain_result(f"错误：命令格式不正确\n\n正确格式: color <目标格式> <颜色值>\n示例: color rgb 72C0FF")
+                return
+            
+            target_format = command_type
+            color_str = parts[1]
+            
+            # 验证目标格式
+            if target_format not in ['rgb', 'hex', 'cmyk']:
+                yield event.plain_result(f"错误：未知的目标格式 '{target_format}'，必须是 rgb, hex 或 cmyk\n\n输入 colorhelp 查看帮助")
+                return
+            
+            # 转换颜色
+            color_info, error_msg = self._convert_color(target_format, color_str)
+            if error_msg:
+                yield event.plain_result(error_msg)
+                return
+            
+            # 格式化输出
+            output = self._format_output(color_info, target_format)
+            
+            yield event.plain_result(output)
             return
-        
-        target_format = command_type
-        color_str = parts[1]
-        
-        # 验证目标格式
-        if target_format not in ['rgb', 'hex', 'cmyk']:
-            yield event.plain_result(f"错误：未知的目标格式 '{target_format}'，必须是 rgb, hex 或 cmyk\n\n输入 colorhelp 查看帮助")
-            return
-        
-        # 转换颜色
-        color_info, error_msg = self._convert_color(target_format, color_str)
-        if error_msg:
-            yield event.plain_result(error_msg)
-            return
-        
-        # 格式化输出
-        output = self._format_output(color_info, target_format)
-        
-        yield event.plain_result(output)
     
     @filter.command("colorhelp")
     async def color_help(self, event: AstrMessageEvent):
